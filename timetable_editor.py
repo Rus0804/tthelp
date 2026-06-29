@@ -319,13 +319,13 @@ def editing_page():
 
         if st.button("Filter Timetable"):
             process_excel(selected_subjects)
-        file_path = "TIMETABLE.xlsx"
-        if os.path.exists(file_path):
-            with open(file_path, "rb") as f:
-                st.download_button(
-                    label="Download Timetable",
-                    data=f,
-                    file_name="TIMETABLE.xlsx"
-                )
-            
+            file_path = "TIMETABLE.xlsx"
+            if os.path.exists(file_path):
+                with open(file_path, "rb") as f:
+                    st.download_button(
+                        label="Download Timetable",
+                        data=f,
+                        file_name="TIMETABLE.xlsx"
+                    )
+                
 
