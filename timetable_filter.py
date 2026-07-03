@@ -30,7 +30,7 @@ def build_merge_map(ws):
 
 def process_excel(conditions:  list):
     wb = load_workbook("TERM 4 MBA TT.xlsx")
-    ws = wb["TERM 4 MBA"]
+    ws = wb.active
 
     row_start: int = 9
     row_end: int = 53
