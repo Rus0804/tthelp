@@ -8,8 +8,7 @@ from openpyxl.styles import PatternFill
 from all_courses import TERM_4_COURSES as courses
 
 def check_condition(cell_value: str, condition: dict) -> bool:
-    return condition["course_code"] in cell_value and condition["class"] in cell_value
-
+    return condition["course_code"] in cell_value and (condition["class"] in cell_value or "EXAM" in cell_value)
 def apply_condition_set(cell_value: str, conditions: list) -> bool:
     """Return True if the cell should be cleared."""
     if not cell_value:
@@ -72,9 +71,6 @@ def process_excel(conditions:  list):
         for name, hex_code in color_hex_map.items()
     }
     
-
-    yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-
     for row in range(row_start, row_end + 1):
         for col in range(col_start, col_end + 1):
             cell = ws.cell(row=row, column=col)
