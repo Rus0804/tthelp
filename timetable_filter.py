@@ -32,8 +32,8 @@ def process_excel(conditions:  list):
     wb = load_workbook("TERM 4 MBA TT.xlsx")
     ws = wb.active
 
-    row_start: int = 9
-    row_end: int = 53
+    row_start: int = 7
+    row_end: int = 71
     col_start: int = 3
     col_end: int = 10
 
