@@ -5,10 +5,15 @@ import streamlit as st
 import pandas as pd
 import os
 from openpyxl.styles import PatternFill
-from all_courses import TERM_4_COURSES as courses
+from all_courses import get_course_dict
+from utils import get_row_range, build_merge_map
 
 def check_condition(cell_value: str, condition: dict) -> bool:
+    if condition["class"] == None:
+        return condition["course_code"] in cell_value
     return condition["course_code"] in cell_value and (condition["class"] in cell_value or "EXAM" in cell_value)
+
+
 def apply_condition_set(cell_value: str, conditions: list) -> bool:
     """Return True if the cell should be cleared."""
     if not cell_value:
@@ -17,33 +22,17 @@ def apply_condition_set(cell_value: str, conditions: list) -> bool:
     return any(results)
 
 
-def build_merge_map(ws):
-    """Returns a dict mapping (row, col) → (master_row, master_col) for every merged cell."""
-    merge_map = {}
-    for merge_range in ws.merged_cells.ranges:
-        master = (merge_range.min_row, merge_range.min_col)
-        for row in range(merge_range.min_row, merge_range.max_row + 1):
-            for col in range(merge_range.min_col, merge_range.max_col + 1):
-                merge_map[(row, col)] = master
-    return merge_map
+def process_excel(courses: dict, conditions:  list, file: Optional[UploadedFile] = None):
 
-def process_excel(conditions:  list):
-    wb = load_workbook("TERM 4 MBA TT.xlsx")
+    if not file:
+        wb = load_workbook("TERM 4 MBA TT.xlsx")
+    else:
+        wb = load_workbook(file)
     ws = wb.active
-
-    row_start: int = 7
-    row_end: int = 71
+    
+    row_start, row_end = get_row_range(ws['A'], 'tt')
     col_start: int = 3
     col_end: int = 10
-
-
-    cleared = 0
-    merge_map = build_merge_map(ws)
-    already_cleared = set()  # avoid hitting the same master cell twice
-
-    merge_map     = build_merge_map(ws)
-    already_seen  = set()   # master coordinates already evaluated
-    cleared       = 0
 
     colors = ["yellow", "blue", "green", "red", "orange", "pink", "purple"]
 
@@ -70,6 +59,10 @@ def process_excel(conditions:  list):
         name: PatternFill(start_color=hex_code, end_color=hex_code, fill_type="solid")
         for name, hex_code in color_hex_map.items()
     }
+
+    merge_map     = build_merge_map(ws)
+    already_seen  = set()   # master coordinates already evaluated
+    cleared       = 0
     
     for row in range(row_start, row_end + 1):
         for col in range(col_start, col_end + 1):
@@ -94,7 +87,7 @@ def process_excel(conditions:  list):
             else:
                 cell_content = master.value
                 course_code = cell_content[:8]
-                course_name = course_name_from_code(course_code)
+                course_name = courses[course_code]["Course Name"]
                 master.value = master.value.replace(course_code, course_name + f"({course_code[:3]})")
                 master.fill = fill_map[subject_color_map[course_code]]
 
@@ -105,11 +98,7 @@ def process_excel(conditions:  list):
     print(f"\n✓ Done — {cleared} cell(s) cleared. Saved to 'TIMETABLE.xlsx'.")
 
 
-def course_name_from_code(course_code: str) -> str:
-    return courses[course_code]["Course Name"]
-
-
-def get_subject_codes() -> list:
+def get_subject_codes(courses: dict) -> list:
     st.subheader("Select Classes")
     major = st.radio("Pick your major", ["Marketing - MKT", "Finance - FIN", "Information Technology - ITS", "Accounting - ANT"], horizontal = True)
     major_courses =  [(code, courses[code]["Course Name"]) for code in courses.keys() if major[-3:] in code]
@@ -124,7 +113,7 @@ def get_subject_codes() -> list:
     codes_list = [code for code in courses.keys() if code in major_codes or code in minor_codes]
     return codes_list
 
-def get_subject_classes(codes_list: list) -> list:
+def get_subject_classes(codes_list: list, courses: dict) -> list:
 
     selected_subjects = []
 
@@ -141,19 +130,20 @@ def get_subject_classes(codes_list: list) -> list:
 
 
 
-def filter_page():
+def filter_classes(file: Optional[UploadedFile] = None):
 
-    codes_list = get_subject_codes()
-    selected_subjects = get_subject_classes(codes_list)
+    courses_data = get_course_dict(file)
+
+    codes_list = get_subject_codes(courses_data)
+    selected_subjects = get_subject_classes(codes_list, courses_data)
     
-
     if len(selected_subjects) > 0:
-        subject_data = dict([(code, courses[code]) for code in courses.keys() if code in codes_list])
+        subject_data = dict([(code, courses_data[code]) for code in courses_data.keys() if code in codes_list])
         data = pd.DataFrame(subject_data)
         st.table(data.loc[["Course Name", "Credits", "Instructor"]])
 
         if st.button("Filter Timetable"):
-            process_excel(selected_subjects)
+            process_excel(courses_data, selected_subjects, file)
             file_path = "TIMETABLE.xlsx"
             if os.path.exists(file_path):
                 with open(file_path, "rb") as f:

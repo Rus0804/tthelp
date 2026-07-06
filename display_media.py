@@ -13,6 +13,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter, column_index_from_string
 from openpyxl.styles.colors import COLOR_INDEX, aRGB_REGEX
 import os, pathlib
+from typing import Optional
 
 INDEXED_COLOURS = [
     "000000","FFFFFF","FF0000","00FF00","0000FF","FFFF00","FF00FF","00FFFF",
@@ -195,10 +196,13 @@ def sheet_to_html(ws) -> str:
     return table
 
 
-def display_default():
-    file_path = "TERM 4 MBA TT.xlsx"
-    with open(file_path, "rb") as f:
-        wb = load_workbook(f, data_only=True)
+def display_default(file: Optional[UploadedFile] = None):
+    if not file:
+        file_path = "TERM 4 MBA TT.xlsx"
+        with open(file_path, "rb") as f:
+            wb = load_workbook(f, data_only=True)
+    else:
+        wb = load_workbook(file, data_only = True)
     ws = wb.active
     html = sheet_to_html(ws)
     st.iframe(html, height=700)
